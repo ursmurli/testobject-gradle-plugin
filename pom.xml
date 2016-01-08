@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.testobject</groupId>
 	<artifactId>testobject-gradle-plugin</artifactId>
-	<version>0.0.38-SNAPSHOT</version>
+	<version>0.0.38.2</version>
 	<name>TestObject Gradle Plugin</name>
 
 	<properties>
@@ -69,14 +69,11 @@
 	</scm>
 
 	<distributionManagement>
-		<repository>
-			<id>testobject-public-repo</id>
-			<url>http://nexus.testobject.org/nexus/content/repositories/testobject-public-repo</url>
-		</repository>
-		<snapshotRepository>
-			<id>testobject-public-snapshots</id>
-			<url>http://nexus.testobject.org/nexus/content/repositories/testobject-public-snapshots</url>
-		</snapshotRepository>
+	    <repository>
+	        <id>artifactory.prodwest.citrixsaassbe.net</id>
+	        <name>artifactory.prodwest.citrixsaassbe.net-releases</name>
+	        <url>https://artifactory.prodwest.citrixsaassbe.net/artifactory/plugins-release-local</url>
+	    </repository>
 	</distributionManagement>
 
 	<dependencies>
@@ -113,7 +110,7 @@
 		<dependency>
 			<groupId>org.testobject</groupId>
 			<artifactId>testobject-java-api</artifactId>
-			<version>0.0.14</version>
+			<version>0.0.14.2</version>
 		</dependency>
 	</dependencies>
 

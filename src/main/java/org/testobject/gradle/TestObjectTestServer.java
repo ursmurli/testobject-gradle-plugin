@@ -55,7 +55,7 @@ public class TestObjectTestServer extends TestServer {
 
 		long suiteReportId = client.startInstrumentationTestSuite(team, app, testSuite);
 
-		TestSuiteReport suiteReport = client.waitForSuiteReport(team, app, suiteReportId);
+		TestSuiteReport suiteReport = client.waitForSuiteReport(team, app, suiteReportId , TimeUnit.MINUTES.toMillis(120), TimeUnit.SECONDS.toMillis(30));
 
 		writeSuiteReportXML(client, team, app, suiteReportId);
 
