@@ -55,7 +55,7 @@ public class TestObjectTestServer extends TestServer {
 
 		long suiteReportId = client.startInstrumentationTestSuite(team, app, testSuite);
 
-		TestSuiteReport suiteReport = client.waitForSuiteReport(team, app, suiteReportId , TimeUnit.MINUTES.toMillis(120), TimeUnit.SECONDS.toMillis(30));
+		TestSuiteReport suiteReport = client.waitForSuiteReport(team, app, suiteReportId , TimeUnit.MINUTES.toMillis(180), TimeUnit.SECONDS.toMillis(30));
 
 		writeSuiteReportXML(client, team, app, suiteReportId);
 
@@ -69,7 +69,7 @@ public class TestObjectTestServer extends TestServer {
 				.format("%s/#/%s/%s/espresso/%d/reports/%d", baseUrl.replace("/api/rest", ""), team, app, testSuite, suiteReportId);
 
 		StringBuilder msg = new StringBuilder();
-
+		
 		msg.append("\n");
 		msg.append(getTestsList(suiteReport));
 		msg.append("----------------------------------------------------------------------------------");
