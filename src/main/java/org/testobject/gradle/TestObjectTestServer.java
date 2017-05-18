@@ -6,16 +6,17 @@ import com.android.builder.testing.api.TestServer;
 import org.gradle.api.GradleScriptException;
 import org.gradle.api.logging.Logger;
 import org.testobject.api.TestObjectClient;
-import org.testobject.rest.api.TestSuiteReport;
-import org.testobject.rest.api.TestSuiteResource;
+import org.testobject.rest.api.model.TestSuiteReport;
+import org.testobject.rest.api.resource.TestSuiteResource;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TestObjectTestServer extends TestServer {
@@ -42,10 +43,22 @@ public class TestObjectTestServer extends TestServer {
 		String app = extension.getApp();
 		Long testSuite = extension.getTestSuite();
 		String team = extension.getTeam() != null && extension.getTeam().isEmpty() == false ? extension.getTeam() : username;
-		Boolean runAsPackage = extension.getRunAsPackage() != null ? extension.getRunAsPackage() : false;
+		List<String> methodsToRun = extension.getTests();
+		List<String> classesToRun = extension.getClasses();
+		List<String> annotationsToRun = extension.getAnnotations();
+		List<String> sizesToRun = extension.getSizes();
+		boolean failOnUnknown = extension.getFailOnUnknown();
+		int testTimeout = extension.getTestTimeout();
+		int checkFrequency = extension.getCheckFrequency();
+
+		boolean runAsPackage = extension.getRunAsPackage();
 
 		TestSuiteResource.InstrumentationTestSuiteRequest instrumentationTestSuiteRequest = new TestSuiteResource.InstrumentationTestSuiteRequest(
 				runAsPackage);
+		instrumentationTestSuiteRequest.methodsToRun = methodsToRun;
+		instrumentationTestSuiteRequest.annotationsToRun = annotationsToRun;
+		instrumentationTestSuiteRequest.classesToRun = classesToRun;
+		instrumentationTestSuiteRequest.sizesToRun = sizesToRun;
 
 		login(client, username, password);
 
@@ -55,7 +68,9 @@ public class TestObjectTestServer extends TestServer {
 
 		long suiteReportId = client.startInstrumentationTestSuite(team, app, testSuite);
 
-		TestSuiteReport suiteReport = client.waitForSuiteReport(team, app, suiteReportId , TimeUnit.MINUTES.toMillis(180), TimeUnit.SECONDS.toMillis(30));
+		TestSuiteReport suiteReport = client
+				.waitForSuiteReport(team, app, suiteReportId, TimeUnit.MINUTES.toMillis(testTimeout),
+						TimeUnit.SECONDS.toMillis(checkFrequency));
 
 		writeSuiteReportXML(client, team, app, suiteReportId);
 
@@ -63,7 +78,7 @@ public class TestObjectTestServer extends TestServer {
 
 		String executionTime = getExecutionTime(start, end);
 
-		int errors = countErrors(suiteReport);
+		int errors = countErrors(suiteReport, failOnUnknown);
 		String downloadURL = String.format("%s/users/%s/projects/%s/automationReports/%d/download/zip", baseUrl, team, app, suiteReportId);
 		String reportURL = String
 				.format("%s/#/%s/%s/espresso/%d/reports/%d", baseUrl.replace("/api/rest", ""), team, app, testSuite, suiteReportId);
@@ -121,7 +136,7 @@ public class TestObjectTestServer extends TestServer {
 		try {
 			client.login(user, password);
 
-			logger.info(String.format("user %s successfully logged in",user));
+			logger.info(String.format("user %s successfully logged in", user));
 		} catch (Exception e) {
 			throw new GradleScriptException(String.format("unable to login user %s", user), e);
 		}
@@ -137,28 +152,25 @@ public class TestObjectTestServer extends TestServer {
 		}
 	}
 
-	private long createInstrumentationSuite(File testApk, File appAk, TestObjectClient client, String team, String app, Long testSuite,
-			TestSuiteResource.InstrumentationTestSuiteRequest instrumentationTestSuiteRequest) {
-		long batchId;
-		try {
-			batchId = client.createInstrumentationTestSuite(team, app, testSuite, appAk, testApk, instrumentationTestSuiteRequest);
-			logger.info(String.format("Uploaded appAPK : %s and testAPK : %s", appAk.getAbsolutePath(), testApk.getAbsolutePath()));
-		} catch (Exception e) {
-			throw new GradleScriptException(String.format("unable to create testSuite %s", testSuite), e);
-		}
-		return batchId;
-	}
-
-	private static int countErrors(TestSuiteReport suiteReport) {
+	private static int countErrors(TestSuiteReport suiteReport, boolean failOnUnknown) {
 		int errors = 0;
 		Iterator<TestSuiteReport.ReportEntry> reportsIterator = suiteReport.getReports().iterator();
 		while (reportsIterator.hasNext()) {
 			TestSuiteReport.ReportEntry reportEntry = reportsIterator.next();
-			if (reportEntry.getView().getStatus() == TestSuiteReport.Status.FAILURE) {
+			if (isFailed(reportEntry, failOnUnknown)) {
 				errors++;
 			}
 		}
 		return errors;
+	}
+
+	private static boolean isFailed(TestSuiteReport.ReportEntry reportEntry, boolean failOnUnknown) {
+		if (failOnUnknown) {
+			return reportEntry.getView().getStatus() == TestSuiteReport.Status.FAILURE
+					|| reportEntry.getView().getStatus() == TestSuiteReport.Status.UNKNOWN;
+		} else {
+			return reportEntry.getView().getStatus() == TestSuiteReport.Status.FAILURE;
+		}
 	}
 
 	private static String getTestsList(TestSuiteReport suiteReport) {
